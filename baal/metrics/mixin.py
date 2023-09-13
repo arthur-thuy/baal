@@ -37,6 +37,7 @@ class MetricMixin:
         """
         self.metrics["test_" + name] = initializer()
         self.metrics["train_" + name] = initializer()
+        self.metrics["val_" + name] = initializer()
 
     def _reset_metrics(self, filter=""):
         """

@@ -106,6 +106,7 @@ class ModelWrapper(MetricMixin):
         workers: int = 4,
         collate_fn: Optional[Callable] = None,
         average_predictions: int = 1,
+        eval_set: str = "test"
     ):
         """
         Test the model on a Dataset `dataset`.
@@ -118,24 +119,29 @@ class ModelWrapper(MetricMixin):
             collate_fn (Optional[Callable]): The collate function to use.
             average_predictions (int): The number of predictions to average to
                 compute the test loss.
+            eval_set (str): Dataset to evaluate on. Can be 'val' or 'test'
 
         Returns:
             Average loss value over the dataset.
         """
+        assert eval_set in {"val", "test"}, "eval_set must be 'val' or 'test'"
         self.eval()
         log.info("Starting evaluating", dataset=len(dataset))
-        self._reset_metrics("test")
+        self._reset_metrics(eval_set)
 
         for data, target, *_ in DataLoader(
             dataset, batch_size, False, num_workers=workers, collate_fn=collate_fn
         ):
             _ = self.test_on_batch(
-                data, target, cuda=use_cuda, average_predictions=average_predictions
+                data, target, cuda=use_cuda, average_predictions=average_predictions, eval_set=eval_set
             )
 
-        log.info("Evaluation complete", test_loss=self.get_metrics("test")["test_loss"])
-        self.active_step(None, self.get_metrics("test"))
-        return self.get_metrics("test")["test_loss"]
+        if eval_set == "test":
+            log.info("Evaluation complete", test_loss=self.get_metrics(eval_set)[f"{eval_set}_loss"])
+        else:
+            log.info("Evaluation complete", val_loss=self.get_metrics(eval_set)[f"{eval_set}_loss"])
+        self.active_step(None, self.get_metrics(eval_set))
+        return self.get_metrics(eval_set)[f"{eval_set}_loss"]
 
     def train_and_test_on_datasets(
         self,
@@ -152,6 +158,7 @@ class ModelWrapper(MetricMixin):
         patience=None,
         min_epoch_for_es=0,
         skip_epochs=1,
+        eval_set: str = "test"
     ):
         """
         Train and test the model on both Dataset `train_dataset`, `test_dataset`.
@@ -171,6 +178,7 @@ class ModelWrapper(MetricMixin):
                                         `patience` epoch without improvement.
             min_epoch_for_es (int): Epoch at which the early stopping starts.
             skip_epochs (int): Number of epochs to skip for test_on_dataset
+            eval_set (str): Dataset to evaluate on. Can be 'val' or 'test'
 
         Returns:
             History and best weights if required.
@@ -185,7 +193,7 @@ class ModelWrapper(MetricMixin):
             )
             if e % skip_epochs == 0:
                 te_loss = self.test_on_dataset(
-                    test_dataset, batch_size, use_cuda, workers, collate_fn
+                    test_dataset, batch_size, use_cuda, workers, collate_fn, eval_set=eval_set
                 )
                 hist.append(self.get_metrics())
                 if te_loss < best_loss:
@@ -340,6 +348,7 @@ class ModelWrapper(MetricMixin):
         target: torch.Tensor,
         cuda: bool = False,
         average_predictions: int = 1,
+        eval_set: str = "test"
     ):
         """
         Test the current model on a batch.
@@ -363,7 +372,7 @@ class ModelWrapper(MetricMixin):
                 self.predict_on_batch(data, iterations=average_predictions, cuda=cuda),
             )
             loss = self.criterion(preds, target)
-            self._update_metrics(preds, target, loss, "test")
+            self._update_metrics(preds, target, loss, eval_set)
             return loss
 
     def predict_on_batch(self, data, iterations=1, cuda=False):
