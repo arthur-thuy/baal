@@ -1,6 +1,7 @@
 import math
 import unittest
 from unittest.mock import Mock
+from parameterized import parameterized
 
 import numpy as np
 import pytest
@@ -10,7 +11,7 @@ from torch import nn
 from torch.utils.data import Dataset, DataLoader
 
 from baal.modelwrapper import ModelWrapper, mc_inference
-from baal.utils.metrics import ClassificationReport
+from baal.utils.metrics import ClassificationReport, Accuracy
 
 
 class DummyDataset(Dataset):
@@ -382,6 +383,21 @@ class ModelWrapperTest(unittest.TestCase):
         metrics = wrapper.get_metrics()
         assert {'train_corr', 'test_corr', 'train_mse', 'test_mse'}.issubset(metrics.keys()) # Torchmetric metric
         assert {'train_loss', 'test_loss'}.issubset(metrics.keys()) # Baal metric
+
+    # @pytest.mark.parametrize('eval_set,val_is_nan', [("val", False), ("test", True)])
+    @parameterized.expand([
+            ["val", False],
+            ["test", True]
+        ])
+    def test_val_metric(self, eval_set, val_is_nan):
+        assert 'test_loss' in self.wrapper.metrics
+        assert 'train_loss' in self.wrapper.metrics
+        assert 'val_loss' in self.wrapper.metrics
+        self.wrapper.train_on_dataset(self.dataset, self.optim, 32, 2, False)
+        self.wrapper.test_on_dataset(self.dataset, 32, False, eval_set=eval_set)
+        test_is_nan = not val_is_nan
+        assert np.isnan(self.wrapper.metrics['val_loss'].value) == val_is_nan
+        assert np.isnan(self.wrapper.metrics['test_loss'].value) == test_is_nan
 
 
 def test_multi_input_model():
