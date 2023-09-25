@@ -359,6 +359,7 @@ class ModelWrapper(MetricMixin):
             cuda (bool): Use CUDA or not.
             average_predictions (int): The number of predictions to average to
                 compute the test loss.
+            eval_set (str): Dataset to evaluate on. Can be 'val' or 'test'
 
         Returns:
             Tensor, the loss computed from the criterion.

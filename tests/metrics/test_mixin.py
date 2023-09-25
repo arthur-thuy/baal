@@ -38,15 +38,19 @@ def test_get_metrics():
     wrapper = ModelWrapper(None, None)
     wrapper.add_metric('accuracy', Accuracy)
 
-    assert len(wrapper.get_metrics()) == 4
+    assert len(wrapper.get_metrics()) == 6
     assert len(wrapper.get_metrics('test')) == 2
     assert all('test' in ki for ki in wrapper.get_metrics('test'))
     assert len(wrapper.get_metrics('train')) == 2
     assert all('train' in ki for ki in wrapper.get_metrics('train'))
+    assert len(wrapper.get_metrics('val')) == 2
+    assert all('val' in ki for ki in wrapper.get_metrics('val'))
 
     wrapper.set_dataset_size(1000)
-    assert len(wrapper.get_metrics()) == 5
+    assert len(wrapper.get_metrics()) == 7
     assert len(wrapper.get_metrics('test')) == 3
     assert sum('test' in ki for ki in wrapper.get_metrics('test')) == 2
     assert len(wrapper.get_metrics('train')) == 3
     assert sum('train' in ki for ki in wrapper.get_metrics('train')) == 2
+    assert len(wrapper.get_metrics('val')) == 3
+    assert sum('val' in ki for ki in wrapper.get_metrics('val')) == 2
