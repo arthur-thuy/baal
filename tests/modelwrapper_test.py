@@ -384,7 +384,6 @@ class ModelWrapperTest(unittest.TestCase):
         assert {'train_corr', 'test_corr', 'train_mse', 'test_mse'}.issubset(metrics.keys()) # Torchmetric metric
         assert {'train_loss', 'test_loss'}.issubset(metrics.keys()) # Baal metric
 
-    # @pytest.mark.parametrize('eval_set,val_is_nan', [("val", False), ("test", True)])
     @parameterized.expand([
             ["val", False],
             ["test", True]
